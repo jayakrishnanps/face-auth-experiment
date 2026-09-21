@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, LoaderCircle, LogOut, ShieldCheck, ScanFace } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { api, ApiError, type User } from '../lib/api';
 
 export function Dashboard() {
@@ -58,32 +58,14 @@ export function Dashboard() {
 
   return (
     <section className="dashboard-page">
-      <span className="eyebrow">
-        <span /> YOUR PERSONAL SPACE
-      </span>
-      <h1>{user ? 'You’re in. Welcome home.' : 'Checking your session…'}</h1>
-      <p className="page-subtitle">A simple dashboard. A successful connection.</p>
+      <h1>{user ? 'Your account' : 'Checking your session…'}</h1>
       <div className="dashboard-card">
         {user ? (
           <>
-            <div className="success-symbol">
-              <ScanFace size={42} />
-              <span>
-                <Check size={14} />
-              </span>
-            </div>
-            <span className="session-badge">
-              <span className="tiny-dot" /> Session active
-            </span>
-            <h2>Good to see you.</h2>
-            <p className="signed-in-label">You’re signed in as</p>
+            <p className="signed-in-label">Signed in as</p>
             <p className="user-email">{user.email}</p>
-            <div className="session-detail">
-              <ShieldCheck size={18} />
-              <span>Your session is verified by the server.</span>
-            </div>
             <button className="primary-button" onClick={() => void logout()} disabled={leaving}>
-              {leaving ? <LoaderCircle size={18} className="spin" /> : <LogOut size={18} />}
+              {leaving && <LoaderCircle size={17} className="spin" />}
               {leaving ? 'Signing out…' : 'Log out'}
             </button>
           </>

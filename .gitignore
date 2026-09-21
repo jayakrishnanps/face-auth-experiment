@@ -17,3 +17,6 @@ playwright-report/
 frontend/public/models/
 # The original brief contains server credentials. Keep it local.
 readthisbeforecreatingproject.txt
+
+# Code Review Graph local database
+.code-review-graph/
