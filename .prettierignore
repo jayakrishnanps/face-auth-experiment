@@ -1,0 +1,8 @@
+node_modules
+dist
+.npm-cache
+.env
+.env.*
+package-lock.json
+frontend/public/models
+readthisbeforecreatingproject.txt

@@ -1,0 +1,26 @@
+{
+  "name": "face-auth-experiment",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "engines": {
+    "node": ">=24.9.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c cyan,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "test": "npm run test -w backend && npm run test -w frontend",
+    "typecheck": "npm run typecheck --workspaces",
+    "models": "npm run models -w frontend",
+    "check:database": "npm run check:database -w backend",
+    "test:live": "npm run test:live -w backend",
+    "format": "prettier --write frontend/src frontend/scripts frontend/vite.config.ts backend/src backend/test backend/scripts *.json frontend/*.json backend/*.json"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.8"
+  }
+}
