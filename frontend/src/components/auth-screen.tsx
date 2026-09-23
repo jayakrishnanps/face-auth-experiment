@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LoaderCircle } from 'lucide-react';
 import { useFaceCapture } from '../face/use-face-capture';
 import { CameraPanel } from './camera-panel';
@@ -7,9 +7,22 @@ import { api } from '../lib/api';
 
 export function AuthScreen({ mode }: { mode: 'register' | 'login' }) {
   const registering = mode === 'register';
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(
+    typeof location.state?.email === 'string' ? location.state.email : '',
+  );
   const capture = useFaceCapture(mode);
   const navigate = useNavigate();
+  useEffect(() => {
+    const controller = new AbortController();
+    void api
+      .me(controller.signal)
+      .then(() => {
+        if (!controller.signal.aborted) navigate('/dashboard', { replace: true });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [navigate]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,14 +31,26 @@ export function AuthScreen({ mode }: { mode: 'register' | 'login' }) {
       if (registering) await api.register(normalized, samples, signal);
       else await api.login(normalized, samples[0], signal);
       if (!signal.aborted) navigate('/dashboard', { replace: true });
-    });
+    }, api.ready);
   }
 
   return (
     <div className="auth-page">
       <section className="auth-form" aria-labelledby="auth-title">
-        <h1 id="auth-title">{registering ? 'Create an account' : 'Sign in'}</h1>
-        <p className="intro">Enter your email, then look at the camera.</p>
+        <nav className="auth-navigation" aria-label="Account access">
+          <Link to="/login" aria-current={!registering ? 'page' : undefined}>
+            Log in
+          </Link>
+          <Link to="/register" aria-current={registering ? 'page' : undefined}>
+            Register
+          </Link>
+        </nav>
+        <h1 id="auth-title">{registering ? 'Register your face' : 'Log in to your account'}</h1>
+        <p className="intro">
+          {registering
+            ? 'Create an account with your email and three face samples.'
+            : 'Use your registered email and face to sign in.'}
+        </p>
         <form onSubmit={submit}>
           <label htmlFor="email">Email address</label>
           <input
@@ -60,8 +85,8 @@ export function AuthScreen({ mode }: { mode: 'register' | 'login' }) {
                     ? 'Creating account…'
                     : 'Verifying…'
                   : registering
-                    ? 'Register Face'
-                    : 'Unlock with Face'}
+                    ? 'Create account'
+                    : 'Log in with face'}
           </button>
           {capture.busy && capture.phase !== 'submitting' && (
             <button type="button" className="cancel-button" onClick={capture.cancel}>
@@ -82,6 +107,10 @@ export function AuthScreen({ mode }: { mode: 'register' | 'login' }) {
         phase={capture.phase}
         progress={capture.progress}
         mode={mode}
+        cameras={capture.cameras}
+        cameraId={capture.cameraId}
+        onCameraChange={capture.setCameraId}
+        busy={capture.busy}
       />
     </div>
   );

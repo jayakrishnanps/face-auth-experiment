@@ -48,7 +48,7 @@ export function Dashboard() {
     try {
       await api.logout();
       setUser(null);
-      navigate('/login', { replace: true });
+      navigate('/login', { replace: true, state: { email: user?.email } });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not sign out. Please retry.');
     } finally {

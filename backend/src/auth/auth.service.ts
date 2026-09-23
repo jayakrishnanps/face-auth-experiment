@@ -22,12 +22,12 @@ export class AuthService {
     const threshold = this.config.getOrThrow<number>('FACE_MATCH_THRESHOLD');
     if (this.config.get<boolean>('FACE_DEBUG_SCORES')) {
       this.logger.log(
-        `Face verification: similarity=${score.toFixed(2)} threshold=${threshold.toFixed(2)}`,
+        `Face verification: accountFound=${Boolean(user)} templates=${templates.length} similarity=${score.toFixed(2)} threshold=${threshold.toFixed(2)}`,
       );
     }
     if (!user || templates.length !== 3 || score < threshold) {
       throw new UnauthorizedException(
-        'Face verification failed. Check your email, lighting, and camera position.',
+        'Could not sign in. Use the same email and face you registered with. If you have not created an account, choose Register.',
       );
     }
     return user;

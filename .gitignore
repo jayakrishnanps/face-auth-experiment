@@ -20,3 +20,6 @@ readthisbeforecreatingproject.txt
 
 # Code Review Graph local database
 .code-review-graph/
+
+# Local progress notes
+/what you have done.md

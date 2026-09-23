@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { listCameras } from './camera';
 import {
   captureEnrollmentSamples,
   captureLoginSample,
@@ -15,6 +16,8 @@ export function useFaceCapture(mode: 'register' | 'login') {
   const controller = useRef<AbortController | null>(null);
   const [phase, setPhase] = useState<CapturePhase>('idle');
   const [error, setError] = useState('');
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [cameraId, setCameraId] = useState('');
   const [progress, setProgress] = useState<CaptureProgress>({
     collected: 0,
     total: mode === 'register' ? 3 : 1,
@@ -24,7 +27,19 @@ export function useFaceCapture(mode: 'register' | 'login') {
 
   useEffect(() => {
     const video = videoRef.current;
+    let mounted = true;
+    const refresh = () => {
+      void listCameras()
+        .then((devices) => {
+          if (mounted) setCameras(devices);
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    navigator.mediaDevices?.addEventListener('devicechange', refresh);
     return () => {
+      mounted = false;
+      navigator.mediaDevices?.removeEventListener('devicechange', refresh);
       controller.current?.abort();
       if (video) stopCamera(video);
     };
@@ -39,7 +54,10 @@ export function useFaceCapture(mode: 'register' | 'login') {
     setProgress({ collected: 0, total: mode === 'register' ? 3 : 1, message: '' });
   }
 
-  async function run(submit: (samples: number[][], signal: AbortSignal) => Promise<void>) {
+  async function run(
+    submit: (samples: number[][], signal: AbortSignal) => Promise<void>,
+    prepare?: (signal: AbortSignal) => Promise<void>,
+  ) {
     if (controller.current) return;
     const video = videoRef.current;
     if (!video) return;
@@ -50,13 +68,18 @@ export function useFaceCapture(mode: 'register' | 'login') {
     setProgress({
       collected: 0,
       total: mode === 'register' ? 3 : 1,
-      message: 'Preparing face models…',
+      message: 'Checking the server…',
     });
     try {
+      await prepare?.(attempt.signal);
+      attempt.signal.throwIfAborted();
+      setProgress((current) => ({ ...current, message: 'Preparing face models…' }));
       await loadModels();
       attempt.signal.throwIfAborted();
       setProgress((current) => ({ ...current, message: 'Allow camera access to continue.' }));
-      await startCamera(video, attempt.signal);
+      await startCamera(video, attempt.signal, cameraId, (devices) => {
+        if (!attempt.signal.aborted) setCameras(devices);
+      });
       attempt.signal.throwIfAborted();
       setPhase('capturing');
       const update = (value: CaptureProgress) => {
@@ -82,5 +105,5 @@ export function useFaceCapture(mode: 'register' | 'login') {
       }
     }
   }
-  return { videoRef, phase, error, progress, busy, run, cancel };
+  return { videoRef, phase, error, progress, busy, run, cancel, cameras, cameraId, setCameraId };
 }

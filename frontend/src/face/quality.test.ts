@@ -15,6 +15,13 @@ describe('Capture quality gates', () => {
     expect(qualityMessage([], 640)).toMatch(/Look at the camera/);
     expect(qualityMessage([goodFace(), goodFace()], 640)).toMatch(/Only one/);
   });
+  it('requires a centered, fully visible face when checking a video frame', () => {
+    expect(qualityMessage([{ ...goodFace(), box: [230, 140, 180, 200] }], 640, 480)).toBeNull();
+    expect(qualityMessage([goodFace()], 640, 480)).toMatch(/Center/);
+    expect(qualityMessage([{ ...goodFace(), box: [-10, 140, 660, 200] }], 640, 480)).toMatch(
+      /Center/,
+    );
+  });
   it('rejects small, uncertain, missing, malformed, and non-finite embeddings', () => {
     for (const patch of [
       { box: [0, 0, 50, 60] },

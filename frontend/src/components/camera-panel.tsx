@@ -2,17 +2,26 @@ import { Camera, Check, LoaderCircle } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { CapturePhase } from '../face/use-face-capture';
 import type { CaptureProgress } from '../face/face-engine';
+import { cameraLabel } from '../face/camera';
 
 export function CameraPanel({
   videoRef,
   phase,
   progress,
   mode,
+  cameras,
+  cameraId,
+  onCameraChange,
+  busy,
 }: {
   videoRef: RefObject<HTMLVideoElement | null>;
   phase: CapturePhase;
   progress: CaptureProgress;
   mode: 'register' | 'login';
+  cameras: MediaDeviceInfo[];
+  cameraId: string;
+  onCameraChange: (id: string) => void;
+  busy: boolean;
 }) {
   const active = phase === 'capturing';
   const pending = phase === 'loading' || phase === 'submitting';
@@ -47,6 +56,24 @@ export function CameraPanel({
             <div className="face-guide" />
           </>
         )}
+      </div>
+      <div className="camera-selector">
+        <label htmlFor="camera">Camera</label>
+        <select
+          id="camera"
+          value={cameraId}
+          onChange={(event) => onCameraChange(event.target.value)}
+          disabled={busy}
+        >
+          <option value="">Laptop webcam (automatic)</option>
+          {cameras
+            .filter((camera) => camera.deviceId)
+            .map((camera, index) => (
+              <option key={camera.deviceId} value={camera.deviceId}>
+                {cameraLabel(camera, index)}
+              </option>
+            ))}
+        </select>
       </div>
       <div className="camera-caption">
         <span>{active ? 'Keep your face centered.' : 'Camera preview'}</span>

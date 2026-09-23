@@ -38,7 +38,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         ? body.message
         : Array.isArray(body?.message)
           ? body.message.join(' ')
-          : 'The request failed. Please retry.';
+          : response.status >= 500
+            ? 'The server is not ready. Wait for the API to start, then retry.'
+            : 'The request failed. Please retry.';
     throw new ApiError(
       response.status === 429 ? 'Too many attempts. Wait a minute before trying again.' : message,
       response.status,
@@ -48,6 +50,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  ready: async (signal: AbortSignal) => {
+    try {
+      await request('/auth/me', { signal });
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 401)) throw error;
+    }
+  },
   register: (email: string, embeddings: number[][], signal: AbortSignal) =>
     request<{ user: User }>('/auth/register', {
       method: 'POST',

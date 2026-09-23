@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Navigate to="/register" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="register" element={<Register />} />
           <Route path="login" element={<Login />} />
           <Route path="dashboard" element={<Dashboard />} />

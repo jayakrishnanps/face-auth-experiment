@@ -57,61 +57,7 @@ function checkCancelled(signal?: AbortSignal) {
   signal?.throwIfAborted();
 }
 
-export function stopCamera(video: HTMLVideoElement) {
-  const stream = video.srcObject as MediaStream | null;
-  stream?.getTracks().forEach((track) => track.stop());
-  video.pause();
-  video.srcObject = null;
-}
-
-export async function startCamera(video: HTMLVideoElement, signal?: AbortSignal) {
-  checkCancelled(signal);
-  if (!navigator.mediaDevices?.getUserMedia)
-    throw new Error('Camera access requires localhost or HTTPS and a supported browser.');
-  stopCamera(video);
-  let stream: MediaStream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-    });
-  } catch (error) {
-    if (error instanceof DOMException) {
-      if (error.name === 'NotAllowedError')
-        throw new Error(
-          'Camera permission was denied. Allow camera access in your browser, then retry.',
-        );
-      if (error.name === 'NotFoundError')
-        throw new Error('No camera was found. Connect a webcam and retry.');
-      if (error.name === 'NotReadableError')
-        throw new Error('Your camera is in use. Close other camera apps and retry.');
-    }
-    throw new Error('The camera could not start. Check your camera connection and retry.');
-  }
-  if (signal?.aborted) {
-    stream.getTracks().forEach((track) => track.stop());
-    checkCancelled(signal);
-  }
-  video.srcObject = stream;
-  const abort = () => stopCamera(video);
-  signal?.addEventListener('abort', abort, { once: true });
-  try {
-    await video.play();
-    const deadline = performance.now() + 10_000;
-    while (video.readyState < 2 || !video.videoWidth) {
-      checkCancelled(signal);
-      if (performance.now() > deadline)
-        throw new Error('The camera did not provide a video frame. Please retry.');
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    checkCancelled(signal);
-  } catch (error) {
-    stopCamera(video);
-    throw error;
-  } finally {
-    signal?.removeEventListener('abort', abort);
-  }
-}
+export { startCamera, stopCamera } from './camera';
 
 // Serialize model access, including a new capture started while an old inference exits.
 let detectionQueue: Promise<unknown> = Promise.resolve();
@@ -145,7 +91,8 @@ async function capture(
 ): Promise<number[][]> {
   const samples: number[][] = [];
   const deadline = performance.now() + 30_000;
-  let lastSample = -Infinity;
+  let steadySince: number | undefined;
+  let previousBox: number[] | undefined;
   while (samples.length < total) {
     checkCancelled(signal);
     if (performance.now() > deadline)
@@ -154,10 +101,25 @@ async function capture(
     if (!tracks?.some((track) => track.readyState === 'live'))
       throw new Error('The camera disconnected. Please reconnect it and retry.');
     const faces = await detectFace(video, signal);
-    const message = qualityMessage(faces, video.videoWidth);
-    if (!message && performance.now() - lastSample >= 900) {
+    let message = qualityMessage(faces, video.videoWidth, video.videoHeight);
+    if (message) {
+      steadySince = undefined;
+      previousBox = undefined;
+    } else {
+      const box = faces[0].box;
+      const moved =
+        previousBox &&
+        box.some(
+          (value, index) => Math.abs(value - previousBox![index]) > video.videoWidth * 0.025,
+        );
+      if (steadySince === undefined || moved) steadySince = performance.now();
+      previousBox = [...box];
+      if (performance.now() - steadySince < 1200) message = 'Hold still in the center…';
+    }
+    if (!message) {
       samples.push(createEmbedding(faces[0]));
-      lastSample = performance.now();
+      steadySince = undefined;
+      previousBox = undefined;
     }
     onProgress({
       collected: samples.length,
