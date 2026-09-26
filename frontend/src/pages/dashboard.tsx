@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, UserRound } from 'lucide-react';
 import { api, ApiError, type User } from '../lib/api';
 
 export function Dashboard() {
@@ -58,12 +58,17 @@ export function Dashboard() {
 
   return (
     <section className="dashboard-page">
-      <h1>{user ? 'Your account' : 'Checking your session…'}</h1>
+      <div className="page-symbol" aria-hidden="true">
+        <UserRound size={30} strokeWidth={1.5} />
+      </div>
+      <h1>{user ? 'Your account' : error ? 'Unable to load account' : 'Checking your session…'}</h1>
       <div className="dashboard-card">
         {user ? (
           <>
-            <p className="signed-in-label">Signed in as</p>
-            <p className="user-email">{user.email}</p>
+            <div className="account-details">
+              <p className="signed-in-label">Signed in as</p>
+              <p className="user-email">{user.email}</p>
+            </div>
             <button className="primary-button" onClick={() => void logout()} disabled={leaving}>
               {leaving && <LoaderCircle size={17} className="spin" />}
               {leaving ? 'Signing out…' : 'Log out'}

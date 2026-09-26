@@ -1,4 +1,4 @@
-import { Camera, Check, LoaderCircle } from 'lucide-react';
+import { ScanFace, Check, LoaderCircle } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { CapturePhase } from '../face/use-face-capture';
 import type { CaptureProgress } from '../face/face-engine';
@@ -43,7 +43,7 @@ export function CameraPanel({
             {phase === 'submitting' ? (
               <Check size={28} strokeWidth={1.5} />
             ) : (
-              <Camera size={28} strokeWidth={1.5} />
+              <ScanFace size={28} strokeWidth={1.3} aria-hidden="true" />
             )}
             <span>{phase === 'submitting' ? 'Face captured' : 'Camera off'}</span>
           </div>
